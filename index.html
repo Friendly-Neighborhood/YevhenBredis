@@ -92,7 +92,6 @@
 </div>
 <div class="tools-row reveal">
   <span class="tool-pill tool-pill-accent">React Native</span>
-  <span class="tool-pill">React Native</span>
   <span class="tool-pill">JavaScript</span>
   <span class="tool-pill">TypeScript</span>
   <span class="tool-pill">Redux</span>
@@ -353,12 +352,20 @@ function openLightbox(caseId, startIndex) {
 }
 function closeLightbox() { lb.classList.remove('active'); document.body.style.overflow=''; }
 function showSlide(i) {
-  lbIndex=(i+lbImages.length)%lbImages.length;
-  lbImg.style.opacity='0';
-  setTimeout(()=>{
-    lbImg.src=lbImages[lbIndex];
-    lbImg.onload=()=>{ lbImg.style.opacity='1'; };
-    lbCounter.textContent=(lbIndex+1)+' / '+lbImages.length;
+  lbIndex = (i + lbImages.length) % lbImages.length;
+  lbImg.style.opacity = '0';
+  setTimeout(() => {
+    const src = lbImages[lbIndex];
+    lbCounter.textContent = (lbIndex + 1) + ' / ' + lbImages.length;
+
+    // Сначала вешаем onload, потом меняем src
+    lbImg.onload = () => { lbImg.style.opacity = '1'; };
+    lbImg.src = src;
+
+    // Если картинка уже в кэше — onload не сработает, проверяем .complete
+    if (lbImg.complete && lbImg.naturalWidth > 0) {
+      lbImg.style.opacity = '1';
+    }
   }, 150);
 }
 

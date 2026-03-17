@@ -9,8 +9,7 @@
   --light:  #e8e2d8;
 }
 
-html { scroll-behavior: smooth; }
-
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   background: var(--paper);
   color: var(--ink);
