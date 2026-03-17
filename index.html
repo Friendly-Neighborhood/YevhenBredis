@@ -338,27 +338,24 @@ function tick() {
 }
 tick();
 
-// ── Lightbox ──────────────────────────────────────────────
-// ── Lightbox ──────────────────────────────────────────────
 const lb = document.getElementById('lightbox');
 const lbImg = document.getElementById('lb-img');
 const lbCounter = document.getElementById('lb-counter');
-let lbImages = [], lbIndex = 0, lbCache = {};
+let lbImages = [], lbIndex = 0;
+const lbCache = {};
 
-function preloadImages(images) {
-  images.forEach(src => {
-    if (!lbCache[src]) {
-      const img = new Image();
-      img.src = src;
-      lbCache[src] = img;
-    }
-  });
+function preloadOne(src) {
+  if (!lbCache[src]) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    lbCache[src] = img;
+  }
 }
 
 function openLightbox(caseId, startIndex) {
   const data = document.getElementById(caseId);
   lbImages = Array.from(data.querySelectorAll('span')).map(s => s.textContent.trim());
-  preloadImages(lbImages); // грузим все сразу
   lbIndex = startIndex;
   showSlide(lbIndex);
   lb.classList.add('active');
@@ -373,58 +370,56 @@ function closeLightbox() {
 function showSlide(i) {
   lbIndex = (i + lbImages.length) % lbImages.length;
   const src = lbImages[lbIndex];
-  lbCounter.textContent = (lbIndex + 1) + ' / ' + lbImages.length;
+  lbCounter.textContent = `${lbIndex + 1} / ${lbImages.length}`;
 
-  const cached = lbCache[src];
-  if (cached && cached.complete && cached.naturalWidth > 0) {
-    // картинка уже в кэше — показываем мгновенно
+  lbImg.style.opacity = '0';
+
+  if (lbCache[src] && lbCache[src].complete) {
     lbImg.src = src;
-    lbImg.style.opacity = '1';
+    requestAnimationFrame(() => {
+      lbImg.style.opacity = '1';
+    });
   } else {
-    lbImg.style.opacity = '0';
-    lbImg.onload = () => { lbImg.style.opacity = '1'; };
-    lbImg.src = src;
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      lbCache[src] = img;
+      lbImg.src = src;
+      lbImg.style.opacity = '1';
+    };
+    img.src = src;
   }
 
-  // Предзагружаем соседние слайды
   const next = lbImages[(lbIndex + 1) % lbImages.length];
   const prev = lbImages[(lbIndex - 1 + lbImages.length) % lbImages.length];
-  [next, prev].forEach(s => {
-    if (!lbCache[s]) {
-      const img = new Image();
-      img.src = s;
-      lbCache[s] = img;
-    }
-  });
+  preloadOne(next);
+  preloadOne(prev);
 }
 
 document.getElementById('lb-close').addEventListener('click', closeLightbox);
 document.getElementById('lb-overlay').addEventListener('click', closeLightbox);
-document.getElementById('lb-prev').addEventListener('click', ()=>showSlide(lbIndex-1));
-document.getElementById('lb-next').addEventListener('click', ()=>showSlide(lbIndex+1));
+document.getElementById('lb-prev').addEventListener('click', () => showSlide(lbIndex - 1));
+document.getElementById('lb-next').addEventListener('click', () => showSlide(lbIndex + 1));
+
 document.addEventListener('keydown', e => {
   if (!lb.classList.contains('active')) return;
-  if (e.key==='Escape') closeLightbox();
-  if (e.key==='ArrowLeft') showSlide(lbIndex-1);
-  if (e.key==='ArrowRight') showSlide(lbIndex+1);
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') showSlide(lbIndex - 1);
+  if (e.key === 'ArrowRight') showSlide(lbIndex + 1);
 });
-let touchStartX=0;
-lb.addEventListener('touchstart', e=>{ touchStartX=e.touches[0].clientX; });
-lb.addEventListener('touchend', e=>{ const dx=e.changedTouches[0].clientX-touchStartX; if(Math.abs(dx)>50)showSlide(lbIndex+(dx<0?1:-1)); });
+
+let touchStartX = 0;
+lb.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+});
+lb.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) showSlide(lbIndex + (dx < 0 ? 1 : -1));
+});
 
 document.querySelectorAll('.gallery-thumb').forEach(thumb => {
-  thumb.addEventListener('click', ()=>openLightbox(thumb.dataset.case, parseInt(thumb.dataset.index)));
-});
-
-// Предзагрузка всех галерей при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.gallery-data span').forEach(span => {
-    const src = span.textContent.trim();
-    if (!lbCache[src]) {
-      const img = new Image();
-      img.src = src;
-      lbCache[src] = img;
-    }
+  thumb.addEventListener('click', () => {
+    openLightbox(thumb.dataset.case, parseInt(thumb.dataset.index, 10));
   });
 });
 </script>
