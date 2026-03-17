@@ -415,6 +415,18 @@ lb.addEventListener('touchend', e=>{ const dx=e.changedTouches[0].clientX-touchS
 document.querySelectorAll('.gallery-thumb').forEach(thumb => {
   thumb.addEventListener('click', ()=>openLightbox(thumb.dataset.case, parseInt(thumb.dataset.index)));
 });
+
+// Предзагрузка всех галерей при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.gallery-data span').forEach(span => {
+    const src = span.textContent.trim();
+    if (!lbCache[src]) {
+      const img = new Image();
+      img.src = src;
+      lbCache[src] = img;
+    }
+  });
+});
 </script>
 </body>
 </html>
