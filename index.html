@@ -339,34 +339,63 @@ function tick() {
 tick();
 
 // ── Lightbox ──────────────────────────────────────────────
-const lb=document.getElementById('lightbox');
-const lbImg=document.getElementById('lb-img');
-const lbCounter=document.getElementById('lb-counter');
-let lbImages=[], lbIndex=0;
+// ── Lightbox ──────────────────────────────────────────────
+const lb = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+const lbCounter = document.getElementById('lb-counter');
+let lbImages = [], lbIndex = 0, lbCache = {};
+
+function preloadImages(images) {
+  images.forEach(src => {
+    if (!lbCache[src]) {
+      const img = new Image();
+      img.src = src;
+      lbCache[src] = img;
+    }
+  });
+}
 
 function openLightbox(caseId, startIndex) {
-  const data=document.getElementById(caseId);
-  lbImages=Array.from(data.querySelectorAll('span')).map(s=>s.textContent.trim());
-  lbIndex=startIndex; showSlide(lbIndex);
-  lb.classList.add('active'); document.body.style.overflow='hidden';
+  const data = document.getElementById(caseId);
+  lbImages = Array.from(data.querySelectorAll('span')).map(s => s.textContent.trim());
+  preloadImages(lbImages); // грузим все сразу
+  lbIndex = startIndex;
+  showSlide(lbIndex);
+  lb.classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
-function closeLightbox() { lb.classList.remove('active'); document.body.style.overflow=''; }
+
+function closeLightbox() {
+  lb.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
 function showSlide(i) {
   lbIndex = (i + lbImages.length) % lbImages.length;
-  lbImg.style.opacity = '0';
-  setTimeout(() => {
-    const src = lbImages[lbIndex];
-    lbCounter.textContent = (lbIndex + 1) + ' / ' + lbImages.length;
+  const src = lbImages[lbIndex];
+  lbCounter.textContent = (lbIndex + 1) + ' / ' + lbImages.length;
 
-    // Сначала вешаем onload, потом меняем src
+  const cached = lbCache[src];
+  if (cached && cached.complete && cached.naturalWidth > 0) {
+    // картинка уже в кэше — показываем мгновенно
+    lbImg.src = src;
+    lbImg.style.opacity = '1';
+  } else {
+    lbImg.style.opacity = '0';
     lbImg.onload = () => { lbImg.style.opacity = '1'; };
     lbImg.src = src;
+  }
 
-    // Если картинка уже в кэше — onload не сработает, проверяем .complete
-    if (lbImg.complete && lbImg.naturalWidth > 0) {
-      lbImg.style.opacity = '1';
+  // Предзагружаем соседние слайды
+  const next = lbImages[(lbIndex + 1) % lbImages.length];
+  const prev = lbImages[(lbIndex - 1 + lbImages.length) % lbImages.length];
+  [next, prev].forEach(s => {
+    if (!lbCache[s]) {
+      const img = new Image();
+      img.src = s;
+      lbCache[s] = img;
     }
-  }, 150);
+  });
 }
 
 document.getElementById('lb-close').addEventListener('click', closeLightbox);
